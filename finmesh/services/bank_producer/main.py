@@ -1,0 +1,51 @@
+import json
+import random
+import time
+
+from confluent_kafka import Producer
+
+from shared.schemas.trade_order import TradeOrderCreated, TradeSide
+
+
+producer = Producer({"bootstrap.servers": "localhost:9092"})
+
+ASSETS = ["AAPL", "MSFT", "TSLA", "NVDA", "BTC"]
+CUSTOMERS = [f"CUST-{i:03d}" for i in range(1, 51)]
+
+
+def create_trade_order() -> TradeOrderCreated:
+    return TradeOrderCreated(
+        trade_id=f"TRD-{random.randint(1000, 9999)}",
+        customer_id=random.choice(CUSTOMERS),
+        asset=random.choice(ASSETS),
+        side=random.choice([TradeSide.BUY, TradeSide.SELL]),
+        quantity=random.randint(1, 100),
+        price=round(random.uniform(50, 500), 2),
+    )
+
+
+def delivery_report(err, msg):
+    if err is not None:
+        print(f"Delivery failed: {err}")
+    else:
+        print(f"Produced {msg.key().decode()} to {msg.topic()}")
+
+
+def main():
+    while True:
+        event = create_trade_order()
+        payload = event.model_dump()
+
+        producer.produce(
+            topic="raw.trade_orders",
+            key=event.trade_id,
+            value=json.dumps(payload),
+            callback=delivery_report,
+        )
+
+        producer.poll(0)
+        time.sleep(2)
+
+
+if __name__ == "__main__":
+    main()
