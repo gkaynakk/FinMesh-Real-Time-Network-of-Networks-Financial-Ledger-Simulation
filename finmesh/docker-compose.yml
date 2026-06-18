@@ -57,3 +57,15 @@ services:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     ports:
       - "5601:5601"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: finmesh-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: finmesh
+      CLICKHOUSE_USER: finmesh
+      CLICKHOUSE_PASSWORD: finmesh
+
