@@ -1,7 +1,6 @@
 import json
 import random
-
-from confluent_kafka import Consumer, Producer
+from shared.kafka import create_consumer, create_producer
 
 from shared.schemas.settlement_event import (
     SettlementEventCreated,
@@ -9,15 +8,8 @@ from shared.schemas.settlement_event import (
 )
 
 
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "settlement-network",
-        "auto.offset.reset": "earliest",
-    }
-)
-
-producer = Producer({"bootstrap.servers": "localhost:9092"})
+consumer = create_consumer("settlement-network")
+producer = create_producer()
 
 FAILURE_REASONS = [
     "insufficient_liquidity",

@@ -1,20 +1,14 @@
 import json
 from typing import Any
 
-from confluent_kafka import Consumer, Producer
+from shared.kafka import create_consumer, create_producer
 
 from shared.schemas.trade_order import TradeOrderCreated
 
 
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "validator-service",
-        "auto.offset.reset": "earliest",
-    }
-)
+consumer = create_consumer("validator-service")
 
-producer = Producer({"bootstrap.servers": "localhost:9092"})
+producer = create_producer()
 
 ALLOWED_ASSETS = {"AAPL", "MSFT", "TSLA", "NVDA", "BTC"}
 

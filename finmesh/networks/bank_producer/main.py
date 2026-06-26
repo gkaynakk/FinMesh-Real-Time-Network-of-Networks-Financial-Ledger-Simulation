@@ -2,12 +2,12 @@ import json
 import random
 import time
 
-from confluent_kafka import Producer
+from shared.kafka import create_producer
 
 from shared.schemas.trade_order import TradeOrderCreated, TradeSide
 
 
-producer = Producer({"bootstrap.servers": "localhost:9092"})
+producer = create_producer()
 
 ASSETS = ["AAPL", "MSFT", "TSLA", "NVDA", "BTC"]
 CUSTOMERS = [f"CUST-{i:03d}" for i in range(1, 51)]

@@ -3,16 +3,10 @@ from datetime import datetime
 from typing import Any
 
 import clickhouse_connect
-from confluent_kafka import Consumer
 
+from shared.kafka import create_consumer
 
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "clickhouse-writer",
-        "auto.offset.reset": "earliest",
-    }
-)
+consumer = create_consumer("clickhouse-writer")
 
 
 def get_clickhouse_client():

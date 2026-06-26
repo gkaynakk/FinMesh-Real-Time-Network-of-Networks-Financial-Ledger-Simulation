@@ -1,20 +1,12 @@
 import json
 import random
 
-from confluent_kafka import Consumer, Producer
+from shared.kafka import create_consumer, create_producer
 
 from shared.schemas.custody_event import CustodyEventCreated, CustodyStatus
 
-
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "custody-network",
-        "auto.offset.reset": "earliest",
-    }
-)
-
-producer = Producer({"bootstrap.servers": "localhost:9092"})
+consumer = create_consumer("custody-network")
+producer = create_producer()
 
 BLOCK_REASONS = [
     "asset_freeze",

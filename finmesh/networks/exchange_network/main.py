@@ -1,24 +1,16 @@
 import json
 import random
 
-from confluent_kafka import Consumer, Producer
+from shared.kafka import create_consumer, create_producer
 
 from shared.schemas.trade_execution import (
     TradeExecutionCreated,
 )
 
 
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "exchange-network",
-        "auto.offset.reset": "earliest",
-    }
-)
+consumer = create_consumer("exchange-network")
 
-producer = Producer(
-    {"bootstrap.servers": "localhost:9092"}
-)
+producer = create_producer()
 
 
 def main():

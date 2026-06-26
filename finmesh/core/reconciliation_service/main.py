@@ -2,18 +2,12 @@ import json
 from collections import defaultdict
 from typing import Any
 
-from confluent_kafka import Consumer, Producer
+from shared.kafka import create_consumer, create_producer
 
 
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "reconciliation-service",
-        "auto.offset.reset": "earliest",
-    }
-)
+consumer = create_consumer("reconciliation-service")
 
-producer = Producer({"bootstrap.servers": "localhost:9092"})
+producer = create_producer()
 
 
 trade_states: dict[str, dict[str, Any]] = defaultdict(dict)
