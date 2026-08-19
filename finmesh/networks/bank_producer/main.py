@@ -1,11 +1,15 @@
 import json
+import logging
 import random
 import time
 
 from shared.kafka import create_producer
-
+from shared.logging_config import configure_logging
 from shared.schemas.trade_order import TradeOrderCreated, TradeSide
 
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 producer = create_producer()
 
@@ -37,27 +41,38 @@ def create_trade_order() -> TradeOrderCreated:
         price=price,
     )
 
+
 def delivery_report(err, msg):
     if err is not None:
-        print(f"Delivery failed: {err}")
+        logger.error("Delivery failed: %s", err)
     else:
-        print(f"Produced {msg.key().decode()} to {msg.topic()}")
+        logger.info(
+            "Produced trade_id=%s topic=%s",
+            msg.key().decode(),
+            msg.topic(),
+        )
 
 
 def main():
-    while True:
-        event = create_trade_order()
-        payload = event.model_dump()
+    logger.info("Bank Producer started")
 
-        producer.produce(
-            topic="raw.trade_orders",
-            key=event.trade_id,
-            value=json.dumps(payload),
-            callback=delivery_report,
-        )
+    try:
+        while True:
+            event = create_trade_order()
+            payload = event.model_dump()
 
-        producer.poll(0)
-        time.sleep(2)
+            producer.produce(
+                topic="raw.trade_orders",
+                key=event.trade_id,
+                value=json.dumps(payload),
+                callback=delivery_report,
+            )
+
+            producer.poll(0)
+            time.sleep(2)
+
+    except KeyboardInterrupt:
+        logger.info("Stopping Bank Producer")
 
 
 if __name__ == "__main__":

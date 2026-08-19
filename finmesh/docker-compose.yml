@@ -68,4 +68,5 @@ services:
       CLICKHOUSE_DB: finmesh
       CLICKHOUSE_USER: finmesh
       CLICKHOUSE_PASSWORD: finmesh
-
+    volumes:
+      - ./sql/clickhouse_init.sql:/docker-entrypoint-initdb.d/clickhouse_init.sql:ro

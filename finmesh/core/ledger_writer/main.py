@@ -1,28 +1,28 @@
 import json
+import logging
 from typing import Any
 
 import psycopg2
-from confluent_kafka import Consumer
 
+from shared.config import settings
 from shared.hashing import calculate_event_hash
+from shared.kafka import create_consumer
+from shared.logging_config import configure_logging
 
 
-consumer = Consumer(
-    {
-        "bootstrap.servers": "localhost:9092",
-        "group.id": "ledger-writer",
-        "auto.offset.reset": "earliest",
-    }
-)
+configure_logging()
+logger = logging.getLogger(__name__)
+
+consumer = create_consumer("ledger-writer")
 
 
 def get_connection():
     return psycopg2.connect(
-        host="127.0.0.1",
-        port=5433,
-        database="finmesh",
-        user="finmesh",
-        password="finmesh",
+        host=settings.postgres_host,
+        port=settings.postgres_port,
+        database=settings.postgres_db,
+        user=settings.postgres_user,
+        password=settings.postgres_password,
     )
 
 
@@ -36,6 +36,7 @@ def get_latest_hash(conn) -> str | None:
             LIMIT 1;
             """
         )
+
         row = cur.fetchone()
         return row[0] if row else None
 
@@ -73,16 +74,27 @@ def insert_ledger_event(conn, event: dict[str, Any]) -> None:
         )
 
     conn.commit()
-    print(f"LEDGER_WRITTEN {event['trade_id']} hash={event_hash[:10]}...")
+
+    logger.info(
+        "LEDGER_WRITTEN trade_id=%s event_id=%s hash=%s",
+        event["trade_id"],
+        event["event_id"],
+        event_hash[:12],
+    )
 
 
 def main() -> None:
     consumer.subscribe(["approved.trade_orders"])
-    conn = get_connection()
 
-    print("Ledger writer started. Listening to approved.trade_orders...")
+    logger.info(
+        "Ledger Writer started. Listening to approved.trade_orders"
+    )
+
+    conn = None
 
     try:
+        conn = get_connection()
+
         while True:
             msg = consumer.poll(1.0)
 
@@ -90,18 +102,29 @@ def main() -> None:
                 continue
 
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                logger.error("Consumer error: %s", msg.error())
                 continue
 
             event = json.loads(msg.value().decode("utf-8"))
+
             insert_ledger_event(conn, event)
 
     except KeyboardInterrupt:
-        print("Stopping ledger writer...")
+        logger.info("Stopping Ledger Writer")
+
+    except Exception:
+        logger.exception("Unexpected Ledger Writer failure")
+
+        if conn is not None:
+            conn.rollback()
+
+        raise
 
     finally:
         consumer.close()
-        conn.close()
+
+        if conn is not None:
+            conn.close()
 
 
 if __name__ == "__main__":

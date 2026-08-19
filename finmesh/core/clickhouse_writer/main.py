@@ -1,21 +1,28 @@
 import json
+import logging
 from datetime import datetime
 from typing import Any
 
 import clickhouse_connect
 
+from shared.config import settings
 from shared.kafka import create_consumer
+from shared.logging_config import configure_logging
+
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 consumer = create_consumer("clickhouse-writer")
 
 
 def get_clickhouse_client():
     return clickhouse_connect.get_client(
-        host="localhost",
-        port=8123,
-        username="finmesh",
-        password="finmesh",
-        database="finmesh",
+        host=settings.clickhouse_host,
+        port=settings.clickhouse_port,
+        username=settings.clickhouse_user,
+        password=settings.clickhouse_password,
+        database=settings.clickhouse_database,
     )
 
 
@@ -89,7 +96,9 @@ def main() -> None:
         ]
     )
 
-    print("ClickHouse Writer started...")
+    logger.info(
+        "ClickHouse Writer started. Listening to approved.trade_orders and reconciliation.results"
+    )
 
     try:
         while True:
@@ -99,7 +108,7 @@ def main() -> None:
                 continue
 
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                logger.error("Consumer error: %s", msg.error())
                 continue
 
             topic = msg.topic()
@@ -107,14 +116,28 @@ def main() -> None:
 
             if topic == "approved.trade_orders":
                 insert_approved_trade(client, event)
-                print(f"CLICKHOUSE_INSERT approved_trade {event['trade_id']}")
+
+                logger.info(
+                    "CLICKHOUSE_INSERT approved_trade trade_id=%s asset=%s",
+                    event["trade_id"],
+                    event["asset"],
+                )
 
             elif topic == "reconciliation.results":
                 insert_reconciliation_result(client, event)
-                print(f"CLICKHOUSE_INSERT reconciliation {event['trade_id']}")
+
+                logger.info(
+                    "CLICKHOUSE_INSERT reconciliation trade_id=%s status=%s",
+                    event["trade_id"],
+                    event["reconciliation_status"],
+                )
 
     except KeyboardInterrupt:
-        print("Stopping ClickHouse Writer...")
+        logger.info("Stopping ClickHouse Writer")
+
+    except Exception:
+        logger.exception("Unexpected ClickHouse Writer failure")
+        raise
 
     finally:
         consumer.close()

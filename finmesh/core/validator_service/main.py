@@ -1,10 +1,14 @@
 import json
 from typing import Any
+import logging
 
+from shared.logging_config import configure_logging
 from shared.kafka import create_consumer, create_producer
 
 from shared.schemas.trade_order import TradeOrderCreated
 
+configure_logging()
+logger = logging.getLogger(__name__)
 
 consumer = create_consumer("validator-service")
 
@@ -45,7 +49,7 @@ def publish(topic: str, key: str, value: dict[str, Any]) -> None:
 
 def main() -> None:
     consumer.subscribe(["raw.trade_orders"])
-    print("Validator service started. Listening to raw.trade_orders...")
+    logger.info("Validator service started. Listening to raw.trade_orders")
 
     try:
         while True:
@@ -55,7 +59,7 @@ def main() -> None:
                 continue
 
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                logger.error("Consumer error: %s", msg.error())
                 continue
 
             event = json.loads(msg.value().decode("utf-8"))
@@ -64,15 +68,19 @@ def main() -> None:
             if is_valid:
                 event["validation_status"] = "APPROVED"
                 publish("approved.trade_orders", event["trade_id"], event)
-                print(f"APPROVED {event['trade_id']}")
+                logger.info("APPROVED trade_id=%s", event["trade_id"])
             else:
                 event["validation_status"] = "REJECTED"
                 event["rejection_reason"] = rejection_reason
                 publish("rejected.trade_orders", event.get("trade_id", "unknown"), event)
-                print(f"REJECTED {event.get('trade_id')} - {rejection_reason}")
+                logger.warning(
+    "REJECTED trade_id=%s reason=%s",
+    event.get("trade_id"),
+    rejection_reason,
+)
 
     except KeyboardInterrupt:
-        print("Stopping validator service...")
+        logger.info("Stopping validator service...")
 
     finally:
         consumer.close()

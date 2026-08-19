@@ -1,14 +1,17 @@
 import json
+import logging
 from collections import defaultdict
 from typing import Any
 
 from shared.kafka import create_consumer, create_producer
+from shared.logging_config import configure_logging
 
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 consumer = create_consumer("reconciliation-service")
-
 producer = create_producer()
-
 
 trade_states: dict[str, dict[str, Any]] = defaultdict(dict)
 
@@ -44,10 +47,29 @@ def publish_result(trade_id: str, state: dict[str, Any]) -> None:
     )
     producer.flush()
 
-    print(f"RECONCILED {trade_id}: {result['reconciliation_status']}")
+    status = result["reconciliation_status"]
+
+    if status == "CONSISTENT":
+        logger.info(
+            "RECONCILED trade_id=%s status=%s",
+            trade_id,
+            status,
+        )
+    elif status in {"SETTLEMENT_FAILED", "CUSTODY_BLOCKED"}:
+        logger.warning(
+            "RECONCILED trade_id=%s status=%s",
+            trade_id,
+            status,
+        )
+    else:
+        logger.info(
+            "RECONCILED trade_id=%s status=%s",
+            trade_id,
+            status,
+        )
 
 
-def main() -> None:
+def main():
     consumer.subscribe(
         [
             "approved.trade_orders",
@@ -57,7 +79,9 @@ def main() -> None:
         ]
     )
 
-    print("Reconciliation Service started...")
+    logger.info(
+        "Reconciliation Service started. Listening to lifecycle topics"
+    )
 
     try:
         while True:
@@ -67,7 +91,7 @@ def main() -> None:
                 continue
 
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                logger.error("Consumer error: %s", msg.error())
                 continue
 
             topic = msg.topic()
@@ -94,7 +118,7 @@ def main() -> None:
             publish_result(trade_id, state)
 
     except KeyboardInterrupt:
-        print("Stopping Reconciliation Service...")
+        logger.info("Stopping Reconciliation Service")
 
     finally:
         consumer.close()

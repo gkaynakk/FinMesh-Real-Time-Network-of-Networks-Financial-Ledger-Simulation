@@ -1,24 +1,35 @@
 import json
+import logging
 import random
 
 from shared.kafka import create_consumer, create_producer
+from shared.logging_config import configure_logging
+from shared.schemas.settlement_event import (
+    SettlementEventCreated,
+    SettlementStatus,
+)
 
-from shared.schemas.custody_event import CustodyEventCreated, CustodyStatus
 
-consumer = create_consumer("custody-network")
+configure_logging()
+logger = logging.getLogger(__name__)
+
+consumer = create_consumer("settlement-network")
 producer = create_producer()
 
-BLOCK_REASONS = [
-    "asset_freeze",
-    "custody_account_mismatch",
-    "manual_review_required",
+FAILURE_REASONS = [
+    "insufficient_liquidity",
+    "counterparty_timeout",
+    "custody_mismatch",
+    "compliance_hold",
 ]
 
 
-def main() -> None:
-    consumer.subscribe(["settlement.events"])
+def main():
+    consumer.subscribe(["exchange.trade_executions"])
 
-    print("Custody Network started. Listening to settlement.events...")
+    logger.info(
+        "Settlement Network started. Listening to exchange.trade_executions"
+    )
 
     try:
         while True:
@@ -28,44 +39,56 @@ def main() -> None:
                 continue
 
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                logger.error("Consumer error: %s", msg.error())
                 continue
 
-            settlement = json.loads(msg.value().decode("utf-8"))
+            execution = json.loads(msg.value().decode("utf-8"))
 
-            # Custody only processes settled trades
-            if settlement["status"] != "SETTLED":
-                print(f"SKIPPED custody for failed settlement {settlement['trade_id']}")
-                continue
+            is_failed = random.random() < 0.12
 
-            is_blocked = random.random() < 0.08
+            status = (
+                SettlementStatus.FAILED
+                if is_failed
+                else SettlementStatus.SETTLED
+            )
 
-            status = CustodyStatus.BLOCKED if is_blocked else CustodyStatus.DELIVERED
-            reason = random.choice(BLOCK_REASONS) if is_blocked else None
+            reason = (
+                random.choice(FAILURE_REASONS)
+                if is_failed
+                else None
+            )
 
-            custody_event = CustodyEventCreated(
-                custody_event_id=f"CUS-{random.randint(10000, 99999)}",
-                settlement_id=settlement["settlement_id"],
-                trade_id=settlement["trade_id"],
+            settlement_event = SettlementEventCreated(
+                settlement_id=f"SET-{random.randint(10000, 99999)}",
+                execution_id=execution["execution_id"],
+                trade_id=execution["trade_id"],
                 status=status,
                 reason=reason,
             )
 
             producer.produce(
-                topic="custody.asset_movements",
-                key=settlement["trade_id"],
-                value=json.dumps(custody_event.model_dump()),
+                topic="settlement.events",
+                key=execution["trade_id"],
+                value=json.dumps(settlement_event.model_dump()),
             )
 
             producer.flush()
 
-            print(
-                f"CUSTODY {custody_event.status} "
-                f"{custody_event.trade_id} reason={reason}"
-            )
+            if status == SettlementStatus.SETTLED:
+                logger.info(
+                    "SETTLED trade_id=%s settlement_id=%s",
+                    execution["trade_id"],
+                    settlement_event.settlement_id,
+                )
+            else:
+                logger.warning(
+                    "SETTLEMENT_FAILED trade_id=%s reason=%s",
+                    execution["trade_id"],
+                    reason,
+                )
 
     except KeyboardInterrupt:
-        print("Stopping Custody Network...")
+        logger.info("Stopping Settlement Network")
 
     finally:
         consumer.close()

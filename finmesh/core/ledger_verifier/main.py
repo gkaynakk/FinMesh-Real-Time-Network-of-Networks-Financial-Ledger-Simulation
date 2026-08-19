@@ -1,16 +1,24 @@
 import json
+import logging
+
 import psycopg2
 
+from shared.config import settings
 from shared.hashing import calculate_event_hash
+from shared.logging_config import configure_logging
+
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 
 def get_connection():
     return psycopg2.connect(
-        host="127.0.0.1",
-        port=5433,
-        database="finmesh",
-        user="finmesh",
-        password="finmesh",
+        host=settings.postgres_host,
+        port=settings.postgres_port,
+        database=settings.postgres_db,
+        user=settings.postgres_user,
+        password=settings.postgres_password,
     )
 
 
@@ -28,42 +36,71 @@ def fetch_ledger_events(conn):
             ORDER BY ledger_id ASC;
             """
         )
+
         return cur.fetchall()
 
 
 def main():
-    conn = get_connection()
-    rows = fetch_ledger_events(conn)
+    conn = None
 
-    if not rows:
-        print("Ledger is empty.")
-        return
+    try:
+        conn = get_connection()
+        rows = fetch_ledger_events(conn)
 
-    expected_previous_hash = None
-
-    for ledger_id, event_id, payload, previous_hash, event_hash in rows:
-        if previous_hash != expected_previous_hash:
-            print(f"CHAIN BROKEN at ledger_id={ledger_id}")
-            print(f"Expected previous_hash: {expected_previous_hash}")
-            print(f"Actual previous_hash:   {previous_hash}")
+        if not rows:
+            logger.warning("Ledger is empty")
             return
 
-        payload_dict = payload if isinstance(payload, dict) else json.loads(payload)
+        expected_previous_hash = None
 
-        recalculated_hash = calculate_event_hash(previous_hash, payload_dict)
+        for ledger_id, event_id, payload, previous_hash, event_hash in rows:
+            if previous_hash != expected_previous_hash:
+                logger.error(
+                    "CHAIN_BROKEN ledger_id=%s event_id=%s "
+                    "expected_previous_hash=%s actual_previous_hash=%s",
+                    ledger_id,
+                    event_id,
+                    expected_previous_hash,
+                    previous_hash,
+                )
+                return
 
-        if recalculated_hash != event_hash:
-            print(f"HASH MISMATCH at ledger_id={ledger_id}")
-            print(f"event_id: {event_id}")
-            print(f"Expected event_hash: {recalculated_hash}")
-            print(f"Actual event_hash:   {event_hash}")
-            return
+            payload_dict = (
+                payload
+                if isinstance(payload, dict)
+                else json.loads(payload)
+            )
 
-        expected_previous_hash = event_hash
+            recalculated_hash = calculate_event_hash(
+                previous_hash,
+                payload_dict,
+            )
 
-    print(f"CHAIN VALID. Verified {len(rows)} ledger events.")
+            if recalculated_hash != event_hash:
+                logger.error(
+                    "HASH_MISMATCH ledger_id=%s event_id=%s "
+                    "expected_event_hash=%s actual_event_hash=%s",
+                    ledger_id,
+                    event_id,
+                    recalculated_hash,
+                    event_hash,
+                )
+                return
 
-    conn.close()
+            expected_previous_hash = event_hash
+
+        logger.info(
+            "CHAIN_VALID verified_events=%s",
+            len(rows),
+        )
+
+    except Exception:
+        logger.exception("Ledger verification failed")
+        raise
+
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 if __name__ == "__main__":

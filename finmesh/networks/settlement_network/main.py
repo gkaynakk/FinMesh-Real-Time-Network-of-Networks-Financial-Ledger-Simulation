@@ -1,12 +1,17 @@
 import json
+import logging
 import random
-from shared.kafka import create_consumer, create_producer
 
+from shared.kafka import create_consumer, create_producer
+from shared.logging_config import configure_logging
 from shared.schemas.settlement_event import (
     SettlementEventCreated,
     SettlementStatus,
 )
 
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 consumer = create_consumer("settlement-network")
 producer = create_producer()
@@ -19,10 +24,12 @@ FAILURE_REASONS = [
 ]
 
 
-def main() -> None:
+def main():
     consumer.subscribe(["exchange.trade_executions"])
 
-    print("Settlement Network started. Listening to exchange.trade_executions...")
+    logger.info(
+        "Settlement Network started. Listening to exchange.trade_executions"
+    )
 
     try:
         while True:
@@ -32,15 +39,24 @@ def main() -> None:
                 continue
 
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                logger.error("Consumer error: %s", msg.error())
                 continue
 
             execution = json.loads(msg.value().decode("utf-8"))
 
             is_failed = random.random() < 0.12
 
-            status = SettlementStatus.FAILED if is_failed else SettlementStatus.SETTLED
-            reason = random.choice(FAILURE_REASONS) if is_failed else None
+            status = (
+                SettlementStatus.FAILED
+                if is_failed
+                else SettlementStatus.SETTLED
+            )
+
+            reason = (
+                random.choice(FAILURE_REASONS)
+                if is_failed
+                else None
+            )
 
             settlement_event = SettlementEventCreated(
                 settlement_id=f"SET-{random.randint(10000, 99999)}",
@@ -58,13 +74,21 @@ def main() -> None:
 
             producer.flush()
 
-            print(
-                f"SETTLEMENT {settlement_event.status} "
-                f"{settlement_event.trade_id} reason={reason}"
-            )
+            if status == SettlementStatus.SETTLED:
+                logger.info(
+                    "SETTLED trade_id=%s settlement_id=%s",
+                    execution["trade_id"],
+                    settlement_event.settlement_id,
+                )
+            else:
+                logger.warning(
+                    "SETTLEMENT_FAILED trade_id=%s reason=%s",
+                    execution["trade_id"],
+                    reason,
+                )
 
     except KeyboardInterrupt:
-        print("Stopping Settlement Network...")
+        logger.info("Stopping Settlement Network")
 
     finally:
         consumer.close()
