@@ -4,31 +4,30 @@ import random
 
 from shared.kafka import create_consumer, create_producer
 from shared.logging_config import configure_logging
-from shared.schemas.settlement_event import (
-    SettlementEventCreated,
-    SettlementStatus,
+from shared.schemas.custody_event import (
+    CustodyEventCreated,
+    CustodyStatus,
 )
 
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
-consumer = create_consumer("settlement-network")
+consumer = create_consumer("custody-network")
 producer = create_producer()
 
-FAILURE_REASONS = [
-    "insufficient_liquidity",
-    "counterparty_timeout",
-    "custody_mismatch",
-    "compliance_hold",
+BLOCK_REASONS = [
+    "asset_freeze",
+    "custody_account_mismatch",
+    "manual_review_required",
 ]
 
 
 def main():
-    consumer.subscribe(["exchange.trade_executions"])
+    consumer.subscribe(["settlement.events"])
 
     logger.info(
-        "Settlement Network started. Listening to exchange.trade_executions"
+        "Custody Network started. Listening to settlement.events"
     )
 
     try:
@@ -42,53 +41,62 @@ def main():
                 logger.error("Consumer error: %s", msg.error())
                 continue
 
-            execution = json.loads(msg.value().decode("utf-8"))
+            settlement = json.loads(msg.value().decode("utf-8"))
 
-            is_failed = random.random() < 0.12
+            # Custody only processes successfully settled trades.
+            if settlement["status"] != "SETTLED":
+                logger.info(
+                    "SKIPPED custody trade_id=%s settlement_status=%s",
+                    settlement["trade_id"],
+                    settlement["status"],
+                )
+                continue
+
+            is_blocked = random.random() < 0.08
 
             status = (
-                SettlementStatus.FAILED
-                if is_failed
-                else SettlementStatus.SETTLED
+                CustodyStatus.BLOCKED
+                if is_blocked
+                else CustodyStatus.DELIVERED
             )
 
             reason = (
-                random.choice(FAILURE_REASONS)
-                if is_failed
+                random.choice(BLOCK_REASONS)
+                if is_blocked
                 else None
             )
 
-            settlement_event = SettlementEventCreated(
-                settlement_id=f"SET-{random.randint(10000, 99999)}",
-                execution_id=execution["execution_id"],
-                trade_id=execution["trade_id"],
+            custody_event = CustodyEventCreated(
+                custody_event_id=f"CUS-{random.randint(10000, 99999)}",
+                settlement_id=settlement["settlement_id"],
+                trade_id=settlement["trade_id"],
                 status=status,
                 reason=reason,
             )
 
             producer.produce(
-                topic="settlement.events",
-                key=execution["trade_id"],
-                value=json.dumps(settlement_event.model_dump()),
+                topic="custody.asset_movements",
+                key=settlement["trade_id"],
+                value=json.dumps(custody_event.model_dump()),
             )
 
             producer.flush()
 
-            if status == SettlementStatus.SETTLED:
+            if status == CustodyStatus.DELIVERED:
                 logger.info(
-                    "SETTLED trade_id=%s settlement_id=%s",
-                    execution["trade_id"],
-                    settlement_event.settlement_id,
+                    "CUSTODY_DELIVERED trade_id=%s custody_event_id=%s",
+                    settlement["trade_id"],
+                    custody_event.custody_event_id,
                 )
             else:
                 logger.warning(
-                    "SETTLEMENT_FAILED trade_id=%s reason=%s",
-                    execution["trade_id"],
+                    "CUSTODY_BLOCKED trade_id=%s reason=%s",
+                    settlement["trade_id"],
                     reason,
                 )
 
     except KeyboardInterrupt:
-        logger.info("Stopping Settlement Network")
+        logger.info("Stopping Custody Network")
 
     finally:
         consumer.close()

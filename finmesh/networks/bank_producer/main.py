@@ -2,7 +2,7 @@ import json
 import logging
 import random
 import time
-
+from uuid import uuid4
 from shared.kafka import create_producer
 from shared.logging_config import configure_logging
 from shared.schemas.trade_order import TradeOrderCreated, TradeSide
@@ -33,7 +33,7 @@ def create_trade_order() -> TradeOrderCreated:
         asset = "UNKNOWN"
 
     return TradeOrderCreated(
-        trade_id=f"TRD-{random.randint(1000, 9999)}",
+        trade_id=f"TRD-{uuid4().hex[:8].upper()}",
         customer_id=random.choice(CUSTOMERS),
         asset=asset,
         side=random.choice([TradeSide.BUY, TradeSide.SELL]),

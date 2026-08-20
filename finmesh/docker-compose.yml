@@ -70,3 +70,52 @@ services:
       CLICKHOUSE_PASSWORD: finmesh
     volumes:
       - ./sql/clickhouse_init.sql:/docker-entrypoint-initdb.d/clickhouse_init.sql:ro
+
+  flink-jobmanager:
+    build:
+      context: ./flink
+      dockerfile: kafka.Dockerfile
+    container_name: finmesh-flink-jobmanager
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: 0.0.0.0
+        parallelism.default: 1
+
+  flink-taskmanager:
+    build:
+      context: ./flink
+      dockerfile: kafka.Dockerfile
+    container_name: finmesh-flink-taskmanager
+    command: taskmanager
+    depends_on:
+      - flink-jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 1
+
+  flink-sql-client:
+    build:
+      context: ./flink
+      dockerfile: kafka.Dockerfile
+    container_name: finmesh-flink-sql-client
+    command: bin/sql-client.sh
+    depends_on:
+      - flink-jobmanager
+      - redpanda
+    volumes:
+      - ./flink/sql:/opt/flink/sql:ro
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+    profiles:
+      - tools

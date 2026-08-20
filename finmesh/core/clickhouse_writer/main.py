@@ -70,7 +70,7 @@ def insert_reconciliation_result(client, event: dict[str, Any]) -> None:
                 event["has_execution"],
                 event.get("settlement_status"),
                 event.get("custody_status"),
-                event["is_complete"],
+                event["reconciliation_status"] == "CONSISTENT",
                 event["reconciliation_status"],
             ]
         ],
@@ -92,7 +92,7 @@ def main() -> None:
     consumer.subscribe(
         [
             "approved.trade_orders",
-            "reconciliation.results",
+            "reconciliation.results.v2",
         ]
     )
 
@@ -123,7 +123,7 @@ def main() -> None:
                     event["asset"],
                 )
 
-            elif topic == "reconciliation.results":
+            elif topic == "reconciliation.results.v2":
                 insert_reconciliation_result(client, event)
 
                 logger.info(
