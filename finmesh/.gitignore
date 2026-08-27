@@ -6,6 +6,8 @@ __pycache__/
 
 # Environment / secrets
 .env
+.env.*
+!.env.example
 
 # macOS
 .DS_Store
@@ -14,9 +16,28 @@ __pycache__/
 .vscode/
 .idea/
 
-# Logs
+# Application logs
 *.log
 logs/
 
+# Airflow runtime data
+airflow/logs/
+airflow/airflow.db
+airflow/*.pid
+
+# FinMesh runtime process files
+.run/
+*.pid
+
 # Local data
 data/
+
+# Test / coverage artifacts
+.coverage
+htmlcov/
+coverage.xml
+
+# Build / packaging
+build/
+dist/
+*.egg-info/

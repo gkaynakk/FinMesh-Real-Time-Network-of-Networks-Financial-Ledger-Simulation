@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS finmesh.reconciliation_results (
     custody_status Nullable(String),
     is_complete Bool,
     reconciliation_status String,
-    inserted_at DateTime DEFAULT now()
+    inserted_at DateTime64(3) DEFAULT now64(3)¬
 )
 ENGINE = MergeTree
 ORDER BY (inserted_at, trade_id);
