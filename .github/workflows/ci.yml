@@ -1,0 +1,38 @@
+name: FinMesh CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Validate Python imports
+        run: |
+          uv run python -c "import shared.config"
+          uv run python -c "import core.validator_service.main"
+          uv run python -c "import networks.bank_producer.main"
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Compile Python sources
+        run: uv run python -m compileall core networks shared airflow/dagsgit commit -m "Add GitHub Actions CI workflow"
