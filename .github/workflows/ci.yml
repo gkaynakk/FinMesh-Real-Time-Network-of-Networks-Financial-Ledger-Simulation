@@ -34,12 +34,6 @@ jobs:
 
       - name: Validate Python imports
         working-directory: ./finmesh
-        run: |
-          uv run python -c "import shared.config"
-          uv run python -c "import core.validator_service.main"
-          uv run python -c "import networks.bank_producer.main"
-      - name: Validate Python imports
-        working-directory: ./finmesh
         env:
           KAFKA_BOOTSTRAP_SERVERS: localhost:9092
           POSTGRES_HOST: localhost
@@ -56,6 +50,7 @@ jobs:
           uv run python -c "import shared.config"
           uv run python -c "import core.validator_service.main"
           uv run python -c "import networks.bank_producer.main"
+
       - name: Validate Docker Compose
         working-directory: ./finmesh
         run: docker compose config
