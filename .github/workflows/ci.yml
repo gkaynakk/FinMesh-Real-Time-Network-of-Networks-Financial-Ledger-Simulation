@@ -50,7 +50,21 @@ jobs:
           uv run python -c "import shared.config"
           uv run python -c "import core.validator_service.main"
           uv run python -c "import networks.bank_producer.main"
-
+      - name: Run unit tests
+        working-directory: ./finmesh
+        env:
+          KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5433"
+          POSTGRES_DB: finmesh
+          POSTGRES_USER: finmesh
+          POSTGRES_PASSWORD: finmesh
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PORT: "8123"
+          CLICKHOUSE_USER: finmesh
+          CLICKHOUSE_PASSWORD: finmesh
+          CLICKHOUSE_DATABASE: finmesh
+        run: uv run pytest -v
       - name: Validate Docker Compose
         working-directory: ./finmesh
         run: docker compose config
