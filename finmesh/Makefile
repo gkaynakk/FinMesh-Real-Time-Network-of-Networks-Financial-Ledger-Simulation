@@ -1,4 +1,4 @@
-.PHONY: up down bank validator exchange settlement custody reconciliation clickhouse ledger verify \
+.PHONY: up down bank validator exchange settlement custody reconciliation clickhouse ledger verify elasticsearch \
 	pipeline pipeline-stop pipeline-status logs flink-reconciliation start stop health
 
 up:
@@ -34,6 +34,9 @@ ledger:
 verify:
 	python -m core.ledger_verifier.main
 
+elasticsearch:
+	python -m core.elasticsearch_writer.main
+
 
 # --------------------------------------------------
 # FinMesh application pipeline
@@ -48,6 +51,7 @@ pipeline:
 	@python -m networks.custody_network.main > logs/custody.log 2>&1 & echo $$! > .run/custody.pid
 	@python -m core.clickhouse_writer.main > logs/clickhouse_writer.log 2>&1 & echo $$! > .run/clickhouse_writer.pid
 	@python -m core.ledger_writer.main > logs/ledger_writer.log 2>&1 & echo $$! > .run/ledger_writer.pid
+	@python -m core.elasticsearch_writer.main > logs/elasticsearch_writer.log 2>&1 & echo $$! > .run/elasticsearch_writer.pid
 	@echo "Core consumers started. Waiting before producer..."
 	@sleep 2
 	@python -m networks.bank_producer.main > logs/bank.log 2>&1 & echo $$! > .run/bank.pid
