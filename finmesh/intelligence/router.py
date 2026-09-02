@@ -4,6 +4,7 @@ from enum import Enum
 class QueryType(str, Enum):
     TRADE = "trade"
     RECONCILIATION_ANALYTICS = "reconciliation_analytics"
+    ASSET_ANALYTICS = "asset_analytics"
     SETTLEMENT_ANALYTICS = "settlement_analytics"
     CUSTODY_ANALYTICS = "custody_analytics"
     UNKNOWN = "unknown"
@@ -14,6 +15,17 @@ def classify_question(question: str) -> QueryType:
 
     if "trd-" in text:
         return QueryType.TRADE
+    if any(
+    word in text
+    for word in (
+        "asset",
+        "symbol",
+        "notional",
+        "volume",
+        "quantity",
+    )
+    ):
+        return QueryType.ASSET_ANALYTICS
 
     if "settlement" in text:
         return QueryType.SETTLEMENT_ANALYTICS

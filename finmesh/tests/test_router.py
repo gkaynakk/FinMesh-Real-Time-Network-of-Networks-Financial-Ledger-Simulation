@@ -27,6 +27,11 @@ def test_reconciliation_question():
         classify_question("What is the reconciliation status distribution?")
         == QueryType.RECONCILIATION_ANALYTICS
     )
+def test_asset_question():
+    assert (
+        classify_question("Which asset has the highest notional value?")
+        == QueryType.ASSET_ANALYTICS
+    )
 
 
 def test_unknown_question():

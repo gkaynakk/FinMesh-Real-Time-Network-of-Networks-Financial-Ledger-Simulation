@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from intelligence.analytics import (
+    get_asset_summary,
     get_custody_summary,
     get_reconciliation_summary,
     get_settlement_summary,
@@ -52,7 +53,37 @@ def test_settlement_summary(mock_get_client):
 
     client.close.assert_called_once()
 
+@patch("intelligence.analytics.get_clickhouse_client")
+def test_asset_summary(mock_get_client):
+    client = MagicMock()
+    mock_get_client.return_value = client
 
+    result = MagicMock()
+    result.result_rows = [
+        ("BTC", 100, 5000, 1250000.50),
+        ("AAPL", 90, 4500, 1100000.25),
+    ]
+    client.query.return_value = result
+
+    summary = get_asset_summary()
+
+    assert summary == [
+        {
+            "asset": "BTC",
+            "trades": 100,
+            "total_quantity": 5000,
+            "notional_value": 1250000.50,
+        },
+        {
+            "asset": "AAPL",
+            "trades": 90,
+            "total_quantity": 4500,
+            "notional_value": 1100000.25,
+        },
+    ]
+
+    client.close.assert_called_once()
+    
 @patch("intelligence.analytics.get_clickhouse_client")
 def test_custody_summary(mock_get_client):
     client = MagicMock()

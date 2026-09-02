@@ -1,6 +1,7 @@
 import json
 import os
 from intelligence.analytics import (
+    get_asset_summary,
     get_custody_summary,
     get_reconciliation_summary,
     get_settlement_summary,
@@ -70,8 +71,14 @@ FinMesh event context:
     )
 
     return response.output_text
-def answer_analytics_question(question: str, query_type: QueryType) -> str:
-    if query_type == QueryType.SETTLEMENT_ANALYTICS:
+def answer_analytics_question(
+    question: str,
+    query_type: QueryType,
+) -> str:
+    if query_type == QueryType.ASSET_ANALYTICS:
+        data = get_asset_summary()
+
+    elif query_type == QueryType.SETTLEMENT_ANALYTICS:
         data = get_settlement_summary()
 
     elif query_type == QueryType.CUSTODY_ANALYTICS:
@@ -132,6 +139,7 @@ def answer_question(question: str) -> str:
         )
 
     if query_type in {
+        QueryType.ASSET_ANALYTICS,
         QueryType.RECONCILIATION_ANALYTICS,
         QueryType.SETTLEMENT_ANALYTICS,
         QueryType.CUSTODY_ANALYTICS,
@@ -143,6 +151,6 @@ def answer_question(question: str) -> str:
 
     return (
         "I can't route that question yet. "
-        "Try asking about a specific trade, settlement, "
+        "Try asking about a specific trade, asset, settlement, "
         "custody, or reconciliation."
     )

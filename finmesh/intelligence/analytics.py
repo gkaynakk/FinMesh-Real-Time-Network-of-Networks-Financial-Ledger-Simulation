@@ -72,8 +72,6 @@ def get_settlement_summary() -> list[dict[str, Any]]:
 
     finally:
         client.close()
-
-
 def get_custody_summary() -> list[dict[str, Any]]:
     client = get_clickhouse_client()
 
@@ -102,6 +100,36 @@ def get_custody_summary() -> list[dict[str, Any]]:
             {
                 "custody_status": row[0],
                 "trades": row[1],
+            }
+            for row in result.result_rows
+        ]
+
+    finally:
+        client.close()
+
+def get_asset_summary() -> list[dict[str, Any]]:
+    client = get_clickhouse_client()
+
+    try:
+        result = client.query(
+            """
+            SELECT
+                asset,
+                count() AS trades,
+                sum(quantity) AS total_quantity,
+                round(sum(quantity * price), 2) AS notional_value
+            FROM approved_trade_events
+            GROUP BY asset
+            ORDER BY trades DESC
+            """
+        )
+
+        return [
+            {
+                "asset": row[0],
+                "trades": row[1],
+                "total_quantity": row[2],
+                "notional_value": row[3],
             }
             for row in result.result_rows
         ]
