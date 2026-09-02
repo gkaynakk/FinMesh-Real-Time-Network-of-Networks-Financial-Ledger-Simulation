@@ -2,7 +2,7 @@ import json
 import logging
 from collections import defaultdict
 from typing import Any
-
+from datetime import datetime, timezone
 from shared.kafka import create_consumer, create_producer
 from shared.logging_config import configure_logging
 
@@ -29,6 +29,7 @@ def publish_result(trade_id: str, state: dict[str, Any]) -> None:
             and state.get("settlement_status") == "SETTLED"
             and state.get("custody_status") == "DELIVERED"
         ),
+        "event_timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     if result["is_complete"]:

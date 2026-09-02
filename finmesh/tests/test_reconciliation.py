@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from unittest.mock import patch
 
 from core.reconciliation_service.main import publish_result
@@ -96,12 +97,13 @@ def test_result_contains_lifecycle_state(mock_producer):
 
     result = get_published_result(mock_producer)
 
-    assert result == {
-        "trade_id": "trade-005",
-        "has_approved_order": True,
-        "has_execution": True,
-        "settlement_status": "SETTLED",
-        "custody_status": "DELIVERED",
-        "is_complete": True,
-        "reconciliation_status": "CONSISTENT",
-    }
+    assert result["trade_id"] == "trade-005"
+    assert result["has_approved_order"] is True
+    assert result["has_execution"] is True
+    assert result["settlement_status"] == "SETTLED"
+    assert result["custody_status"] == "DELIVERED"
+    assert result["is_complete"] is True
+    assert result["reconciliation_status"] == "CONSISTENT"
+
+    assert "event_timestamp" in result
+    datetime.fromisoformat(result["event_timestamp"])
