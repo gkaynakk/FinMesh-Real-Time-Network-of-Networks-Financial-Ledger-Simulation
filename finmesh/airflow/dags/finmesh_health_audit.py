@@ -6,7 +6,7 @@ from airflow.operators.bash import BashOperator
 
 with DAG(
     dag_id="finmesh_health_audit",
-    description="Checks core FinMesh infrastructure and ledger integrity",
+    description="Checks core FinMesh infrastructure health",
     start_date=datetime(2026, 8, 1),
     schedule="*/15 * * * *",
     catchup=False,

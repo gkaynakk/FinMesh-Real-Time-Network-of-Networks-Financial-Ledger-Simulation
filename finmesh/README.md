@@ -211,6 +211,7 @@ The LLM is used to explain retrieved results rather than acting as the system of
 | Dependency management | uv |
 | Infrastructure | Docker Compose |
 | Testing | pytest |
+| CI/CD | GitHub Actions |
 
 ## Prerequisites
 
