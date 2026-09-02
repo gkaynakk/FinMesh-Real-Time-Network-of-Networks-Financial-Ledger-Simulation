@@ -32,7 +32,11 @@ def test_asset_question():
         classify_question("Which asset has the highest notional value?")
         == QueryType.ASSET_ANALYTICS
     )
-
+def test_demo_trade_question():
+    assert (
+        classify_question("What happened to TRD-DEMO-6C3E90?")
+        == QueryType.TRADE
+    )
 
 def test_unknown_question():
     assert (

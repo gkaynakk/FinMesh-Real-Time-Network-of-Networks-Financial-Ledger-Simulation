@@ -1,11 +1,11 @@
 import re
 
 
+
 TRADE_ID_PATTERN = re.compile(
-    r"\bTRD-[A-Z0-9]+\b",
+    r"\bTRD-[A-Z0-9]+(?:-[A-Z0-9]+)*\b",
     re.IGNORECASE,
 )
-
 
 def extract_trade_id(question: str) -> str | None:
     match = TRADE_ID_PATTERN.search(question)

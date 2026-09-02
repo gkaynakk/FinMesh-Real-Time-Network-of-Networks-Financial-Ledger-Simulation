@@ -13,33 +13,57 @@ class QueryType(str, Enum):
 def classify_question(question: str) -> QueryType:
     text = question.lower()
 
+    # A specific trade always takes priority.
     if "trd-" in text:
         return QueryType.TRADE
+
+    # Asset / trading analytics.
     if any(
-    word in text
-    for word in (
-        "asset",
-        "symbol",
-        "notional",
-        "volume",
-        "quantity",
-    )
+        phrase in text
+        for phrase in (
+            "asset",
+            "symbol",
+            "notional",
+            "trading volume",
+            "traded quantity",
+            "total quantity",
+        )
     ):
         return QueryType.ASSET_ANALYTICS
 
-    if "settlement" in text:
+    # Settlement analytics.
+    if any(
+        phrase in text
+        for phrase in (
+            "settlement",
+            "settled",
+            "settlement failure",
+            "settlement failed",
+        )
+    ):
         return QueryType.SETTLEMENT_ANALYTICS
 
-    if "custody" in text:
+    # Custody analytics.
+    if any(
+        phrase in text
+        for phrase in (
+            "custody",
+            "delivered",
+            "blocked",
+            "asset movement",
+        )
+    ):
         return QueryType.CUSTODY_ANALYTICS
 
+    # Overall reconciliation / lifecycle analytics.
     if any(
-        word in text
-        for word in (
+        phrase in text
+        for phrase in (
             "reconciliation",
             "consistent",
             "failed trades",
             "trade status",
+            "status distribution",
         )
     ):
         return QueryType.RECONCILIATION_ANALYTICS

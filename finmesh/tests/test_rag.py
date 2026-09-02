@@ -1,4 +1,3 @@
-
 from intelligence.main import extract_trade_id
 from intelligence.rag import build_context
 
@@ -9,10 +8,22 @@ def test_extract_trade_id():
     assert extract_trade_id(question) == "TRD-C3E49666"
 
 
+def test_extract_demo_trade_id():
+    question = "What happened to TRD-DEMO-6C3E90?"
+
+    assert extract_trade_id(question) == "TRD-DEMO-6C3E90"
+
+
 def test_extract_trade_id_is_case_insensitive():
     question = "Explain trd-c3e49666"
 
     assert extract_trade_id(question) == "TRD-C3E49666"
+
+
+def test_extract_demo_trade_id_is_case_insensitive():
+    question = "Explain trd-demo-abc123"
+
+    assert extract_trade_id(question) == "TRD-DEMO-ABC123"
 
 
 def test_extract_trade_id_returns_none_when_missing():

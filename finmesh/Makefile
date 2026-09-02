@@ -1,3 +1,5 @@
+DOCKER_STOP_TIMEOUT ?= 30
+
 .PHONY: up down bank validator exchange settlement custody reconciliation clickhouse ledger verify elasticsearch \
 	pipeline pipeline-stop pipeline-status logs flink-reconciliation start stop health
 
@@ -5,37 +7,37 @@ up:
 	docker compose up -d
 
 down:
-	docker compose down
+	docker compose down --timeout $(DOCKER_STOP_TIMEOUT)
 
 bank:
-	python -m networks.bank_producer.main
+	uv run python -m networks.bank_producer.main
 
 validator:
-	python -m core.validator_service.main
+	uv run python -m core.validator_service.main
 
 exchange:
-	python -m networks.exchange_network.main
+	uv run python -m networks.exchange_network.main
 
 settlement:
-	python -m networks.settlement_network.main
+	uv run python -m networks.settlement_network.main
 
 custody:
-	python -m networks.custody_network.main
+	uv run python -m networks.custody_network.main
 
 reconciliation:
-	python -m core.reconciliation_service.main
+	uv run python -m core.reconciliation_service.main
 
 clickhouse:
-	python -m core.clickhouse_writer.main
+	uv run python -m core.clickhouse_writer.main
 
 ledger:
-	python -m core.ledger_writer.main
+	uv run python -m core.ledger_writer.main
 
 verify:
-	python -m core.ledger_verifier.main
+	uv run python -m core.ledger_verifier.main
 
 elasticsearch:
-	python -m core.elasticsearch_writer.main
+	uv run python -m core.elasticsearch_writer.main
 
 
 # --------------------------------------------------
@@ -45,16 +47,16 @@ elasticsearch:
 pipeline:
 	@echo "Starting FinMesh application pipeline..."
 	@mkdir -p .run logs
-	@python -m core.validator_service.main > logs/validator.log 2>&1 & echo $$! > .run/validator.pid
-	@python -m networks.exchange_network.main > logs/exchange.log 2>&1 & echo $$! > .run/exchange.pid
-	@python -m networks.settlement_network.main > logs/settlement.log 2>&1 & echo $$! > .run/settlement.pid
-	@python -m networks.custody_network.main > logs/custody.log 2>&1 & echo $$! > .run/custody.pid
-	@python -m core.clickhouse_writer.main > logs/clickhouse_writer.log 2>&1 & echo $$! > .run/clickhouse_writer.pid
-	@python -m core.ledger_writer.main > logs/ledger_writer.log 2>&1 & echo $$! > .run/ledger_writer.pid
-	@python -m core.elasticsearch_writer.main > logs/elasticsearch_writer.log 2>&1 & echo $$! > .run/elasticsearch_writer.pid
+	@uv run python -m core.validator_service.main > logs/validator.log 2>&1 & echo $$! > .run/validator.pid
+	@uv run python -m networks.exchange_network.main > logs/exchange.log 2>&1 & echo $$! > .run/exchange.pid
+	@uv run python -m networks.settlement_network.main > logs/settlement.log 2>&1 & echo $$! > .run/settlement.pid
+	@uv run python -m networks.custody_network.main > logs/custody.log 2>&1 & echo $$! > .run/custody.pid
+	@uv run python -m core.clickhouse_writer.main > logs/clickhouse_writer.log 2>&1 & echo $$! > .run/clickhouse_writer.pid
+	@uv run python -m core.ledger_writer.main > logs/ledger_writer.log 2>&1 & echo $$! > .run/ledger_writer.pid
+	@uv run python -m core.elasticsearch_writer.main > logs/elasticsearch_writer.log 2>&1 & echo $$! > .run/elasticsearch_writer.pid
 	@echo "Core consumers started. Waiting before producer..."
 	@sleep 2
-	@python -m networks.bank_producer.main > logs/bank.log 2>&1 & echo $$! > .run/bank.pid
+	@uv run python -m networks.bank_producer.main > logs/bank.log 2>&1 & echo $$! > .run/bank.pid
 	@echo "FinMesh application pipeline started."
 
 

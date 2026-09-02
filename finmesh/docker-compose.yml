@@ -1,6 +1,6 @@
 services:
   redpanda:
-    image: redpandadata/redpanda:latest
+    image: redpandadata/redpanda@sha256:394cee6e2076a23f9b7b01f5d68228d52429fe683fd087de11c8a68ff5287037
     container_name: finmesh-redpanda
     command:
       - redpanda
@@ -17,7 +17,7 @@ services:
       - "9092:9092"
 
   redpanda-console:
-    image: redpandadata/console:latest
+    image: redpandadata/console@sha256:72bd99bdc304a7c6aab58bfaccf92e302d4e826f6f4737d14953eb04ceed7c07
     container_name: finmesh-console
     depends_on:
       - redpanda
@@ -59,7 +59,7 @@ services:
       - "5601:5601"
 
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server@sha256:07afc18d8a9706eb9d85c5c5d2752e5270f91bbc2894caeaecb73e4d0f603bf5
     container_name: finmesh-clickhouse
     ports:
       - "8123:8123"
