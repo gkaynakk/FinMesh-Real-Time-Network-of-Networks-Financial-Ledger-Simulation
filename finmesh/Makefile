@@ -1,8 +1,7 @@
 DOCKER_STOP_TIMEOUT ?= 30
 
 .PHONY: up down bank validator exchange settlement custody reconciliation clickhouse ledger verify elasticsearch \
-	pipeline pipeline-stop pipeline-status logs flink-reconciliation start stop health
-
+	pipeline pipeline-stop pipeline-status logs flink-reconciliation start stop health api
 up:
 	docker compose up -d
 
@@ -38,6 +37,8 @@ verify:
 
 elasticsearch:
 	uv run python -m core.elasticsearch_writer.main
+api:
+	uv run uvicorn api.main:app --reload --port 8000
 
 
 # --------------------------------------------------
@@ -47,6 +48,7 @@ elasticsearch:
 pipeline:
 	@echo "Starting FinMesh application pipeline..."
 	@mkdir -p .run logs
+
 	@uv run python -m core.validator_service.main > logs/validator.log 2>&1 & echo $$! > .run/validator.pid
 	@uv run python -m networks.exchange_network.main > logs/exchange.log 2>&1 & echo $$! > .run/exchange.pid
 	@uv run python -m networks.settlement_network.main > logs/settlement.log 2>&1 & echo $$! > .run/settlement.pid
@@ -54,10 +56,17 @@ pipeline:
 	@uv run python -m core.clickhouse_writer.main > logs/clickhouse_writer.log 2>&1 & echo $$! > .run/clickhouse_writer.pid
 	@uv run python -m core.ledger_writer.main > logs/ledger_writer.log 2>&1 & echo $$! > .run/ledger_writer.pid
 	@uv run python -m core.elasticsearch_writer.main > logs/elasticsearch_writer.log 2>&1 & echo $$! > .run/elasticsearch_writer.pid
+
 	@echo "Core consumers started. Waiting before producer..."
 	@sleep 2
+
 	@uv run python -m networks.bank_producer.main > logs/bank.log 2>&1 & echo $$! > .run/bank.pid
+
+	@uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 > logs/api.log 2>&1 & echo $$! > .run/api.pid
+
+	@echo "FinMesh API and web UI started."
 	@echo "FinMesh application pipeline started."
+
 
 
 pipeline-stop:
@@ -151,5 +160,7 @@ health:
 		echo "✓ Airflow healthy" || echo "✗ Airflow unhealthy"
 	@curl -sf http://localhost:3000/api/health >/dev/null && \
 		echo "✓ Grafana healthy" || echo "✗ Grafana unhealthy"
+	@curl -sf http://localhost:8000/health >/dev/null && \
+		echo "✓ FinMesh API healthy" || echo "✗ FinMesh API unhealthy"
 	@echo ""
 	@$(MAKE) --no-print-directory pipeline-status

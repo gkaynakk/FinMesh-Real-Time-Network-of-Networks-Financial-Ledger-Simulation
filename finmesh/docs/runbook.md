@@ -132,7 +132,14 @@ custody
 clickhouse_writer
 ledger_writer
 elasticsearch_writer
+api
 bank
+```
+
+The API process serves both the FastAPI application and the FinMesh browser interface at:
+
+```text
+http://localhost:8000
 ```
 
 Process IDs are stored under:
@@ -187,6 +194,7 @@ FinMesh Health Check
 ✓ Flink JobManager healthy
 ✓ Airflow healthy
 ✓ Grafana healthy
+✓ FinMesh API healthy
 ```
 
 The command also reports the host-side application processes:
@@ -200,6 +208,7 @@ The command also reports the host-side application processes:
 ✓ ledger_writer RUNNING
 ✓ settlement RUNNING
 ✓ validator RUNNING
+✓ api RUNNING
 ```
 
 Process IDs will vary between runs.
@@ -244,6 +253,7 @@ logs/custody.log
 logs/clickhouse_writer.log
 logs/ledger_writer.log
 logs/elasticsearch_writer.log
+logs/api.log
 ```
 
 Use `Ctrl+C` to stop following the logs.
@@ -309,9 +319,74 @@ Wait briefly for the asynchronous pipeline to process the transaction.
 
 ---
 
-## 11. Query the FinMesh Intelligence Layer
+## 11. Use the FinMesh Web Interface
 
-Start the interactive intelligence CLI:
+After `make start`, open:
+
+```text
+http://localhost:8000
+```
+
+The browser interface exposes three primary capabilities.
+
+### Trade Explorer
+
+Enter a trade ID such as:
+
+```text
+TRD-DEMO-6C3E90
+```
+
+Trade Explorer retrieves lifecycle events from Elasticsearch and presents the transaction chronologically.
+
+Depending on the lifecycle, the view may contain:
+
+```text
+Order Approved
+Trade Executed
+Settlement
+Custody
+Reconciliation
+```
+
+Raw event payloads remain available through the event detail controls.
+
+### Platform Analytics
+
+The analytics dashboard queries ClickHouse and displays the current aggregate state of the FinMesh platform.
+
+The dashboard includes:
+
+- reconciliation status distribution,
+- settlement outcomes,
+- custody outcomes,
+- asset-level trading activity.
+
+Reconciliation analytics use the latest known state per trade rather than counting every intermediate reconciliation snapshot.
+
+### Ask FinMesh
+
+The Ask FinMesh interface accepts natural-language questions such as:
+
+```text
+What happened to TRD-DEMO-6C3E90?
+
+How many trades failed settlement?
+
+What is the reconciliation status distribution?
+
+Which asset has the highest notional value?
+```
+
+Trade-specific questions are routed to Elasticsearch.
+
+Aggregate analytics questions are routed to ClickHouse.
+
+The retrieved data is supplied to the LLM as authoritative context. The LLM explains the retrieved results rather than generating the underlying financial facts.
+
+### Command-Line Intelligence Interface
+
+The original command-line interface remains available for development and direct testing:
 
 ```bash
 uv run python -m intelligence.main
@@ -326,6 +401,13 @@ Type 'exit' to quit.
 FinMesh>
 ```
 
+Type:
+
+```text
+exit
+```
+
+to leave the CLI.
 ### Trade Lifecycle Query
 
 Using the demo trade ID:
@@ -505,8 +587,12 @@ The suite covers areas including:
 - normal trade ID extraction
 - demo trade ID extraction
 - query classification and routing
+- FastAPI health and trade lifecycle endpoints
+- analytics API endpoints
+- natural-language intelligence API behavior
+- API input validation and error handling
 
-A successful run should finish with all tests passing.
+The v1.1 test suite currently contains **43 tests**. A successful run should finish with all tests passing.
 
 The exact test count may increase as the project evolves.
 
@@ -619,7 +705,7 @@ make stop
 
 The shutdown workflow:
 
-1. terminates host-side FinMesh application processes,
+1. terminates host-side FinMesh application processes, including the FastAPI server,
 2. removes their PID files,
 3. stops and removes the Docker Compose stack.
 
@@ -681,6 +767,18 @@ For example:
 
 ```bash
 cat logs/elasticsearch_writer.log
+```
+
+For the FastAPI application:
+
+```bash
+cat logs/api.log
+```
+
+Check whether port 8000 is already in use:
+
+```bash
+lsof -i :8000
 ```
 
 Also verify the environment:

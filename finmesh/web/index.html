@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>FinMesh | Financial Network Intelligence</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <header class="header">
+        <div>
+            <h1>FinMesh</h1>
+            <p>Real-Time Network of Networks Financial Ledger Simulation</p>
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            <span>Platform Online</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <p class="eyebrow">FINANCIAL NETWORK INTELLIGENCE</p>
+
+            <h2>
+                Observe a transaction across independently
+                operating financial networks.
+            </h2>
+
+            <p class="hero-copy">
+                Explore trade lifecycles, reconciliation state,
+                platform analytics, and FinMesh intelligence.
+            </p>
+        </section>
+
+        <section class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">TRANSACTION LIFECYCLE</p>
+                    <h3>Trade Explorer</h3>
+                </div>
+            </div>
+
+            <form id="trade-form" class="search-form">
+                <input
+                    id="trade-id"
+                    type="text"
+                    placeholder="TRD-DEMO-XXXXXX"
+                    autocomplete="off"
+                >
+                <button type="submit">Search Trade</button>
+            </form>
+
+            <div id="trade-result" class="result">
+                Enter a FinMesh trade ID to inspect its lifecycle.
+            </div>
+        </section>
+        <section class="analytics-grid">
+    <div class="panel metric-panel">
+        <p class="eyebrow">RECONCILIATION</p>
+        <h3>Platform State</h3>
+        <div id="reconciliation-metrics" class="metric-list">
+            Loading...
+        </div>
+    </div>
+
+    <div class="panel metric-panel">
+        <p class="eyebrow">SETTLEMENT</p>
+        <h3>Settlement Outcomes</h3>
+        <div id="settlement-metrics" class="metric-list">
+            Loading...
+        </div>
+    </div>
+
+    <div class="panel metric-panel">
+        <p class="eyebrow">CUSTODY</p>
+        <h3>Custody Outcomes</h3>
+        <div id="custody-metrics" class="metric-list">
+            Loading...
+        </div>
+    </div>
+
+    <div class="panel metric-panel">
+        <p class="eyebrow">ASSET ANALYTICS</p>
+        <h3>Trading Activity</h3>
+        <div id="asset-metrics" class="asset-list">
+            Loading...
+        </div>
+    </div>
+</section>
+<section class="panel intelligence-panel">
+    <div class="panel-heading">
+        <div>
+            <p class="eyebrow">FINMESH INTELLIGENCE</p>
+            <h3>Ask FinMesh</h3>
+        </div>
+    </div>
+
+    <p class="intelligence-copy">
+        Ask about a specific trade, asset activity, settlement,
+        custody, or reconciliation.
+    </p>
+
+    <form id="ask-form" class="ask-form">
+        <textarea
+            id="ask-question"
+            rows="3"
+            placeholder="Which asset has the highest notional value?"
+        ></textarea>
+
+        <button type="submit">Ask FinMesh</button>
+    </form>
+
+    <div id="ask-result" class="ask-result">
+        <span class="metric-label">
+            FinMesh Intelligence is ready.
+        </span>
+    </div>
+</section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
