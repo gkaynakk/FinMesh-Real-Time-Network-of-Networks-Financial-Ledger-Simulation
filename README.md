@@ -6,7 +6,7 @@ FinMesh is an event-driven financial transaction simulation that models a trade 
 
 The platform combines real-time event streaming, stateful stream processing, an immutable hash-chained ledger, analytical storage, lifecycle search, orchestration, observability, and a natural-language intelligence layer.
 
-![FinMesh Architecture](docs/images/finmesh-architecture-v1.1.png)
+![FinMesh Architecture](finmesh/docs/images/finmesh-architecture-v1.1.png)
 
 ## Architecture
 
