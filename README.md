@@ -6,6 +6,8 @@ FinMesh is an event-driven financial transaction simulation that models a trade 
 
 The platform combines real-time event streaming, stateful stream processing, an immutable hash-chained ledger, analytical storage, lifecycle search, orchestration, observability, and a natural-language intelligence layer.
 
+![FinMesh Architecture](docs/images/finmesh-architecture-v1.1.png)
+
 ## Architecture
 
 ```mermaid
@@ -32,6 +34,9 @@ flowchart TB
     INTEL[FinMesh Intelligence]
     ROUTER{Query Router}
     LLM[LLM]
+
+    API[FastAPI<br/>Application API]
+    WEB[FinMesh Web UI<br/>Trade Explorer · Analytics · Ask FinMesh]
 
     BANK -->|raw.trade_orders| RP
 
@@ -61,9 +66,16 @@ flowchart TB
     RP --> ESW
     ESW --> ES
 
+    WEB --> API
+
+    API -->|Trade lifecycle| ES
+    API -->|Platform analytics| CH
+    API -->|Natural-language questions| INTEL
+
     INTEL --> ROUTER
     ROUTER -->|Trade lifecycle queries| ES
     ROUTER -->|Aggregate analytics| CH
+
     ES --> LLM
     CH --> LLM
     LLM --> INTEL
@@ -193,6 +205,24 @@ Trade-specific questions retrieve event evidence from Elasticsearch. Aggregate q
 
 The LLM is used to explain retrieved results rather than acting as the system of record.
 
+### FastAPI and Web Interface
+
+FinMesh exposes its investigation and analytics capabilities through a FastAPI application and browser-based interface.
+
+The web interface provides three primary views:
+
+- **Trade Explorer** — retrieves the lifecycle of a specific trade from Elasticsearch.
+- **Platform Analytics** — displays reconciliation, settlement, custody, and asset metrics backed by ClickHouse.
+- **Ask FinMesh** — sends natural-language questions through the FinMesh Intelligence query router.
+
+FastAPI provides the application boundary between the browser and the underlying FinMesh data services.
+
+The interface is available at:
+
+```text
+http://localhost:8000
+```
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -212,6 +242,8 @@ The LLM is used to explain retrieved results rather than acting as the system of
 | Infrastructure | Docker Compose |
 | Testing | pytest |
 | CI/CD | GitHub Actions |
+| Application API | FastAPI / Uvicorn |
+| Web interface | HTML / CSS / JavaScript |
 
 ## Prerequisites
 
@@ -269,7 +301,7 @@ uv sync --dev
 make start
 ```
 
-This starts the Docker infrastructure, launches the FinMesh application services, and submits the Flink reconciliation job.
+This starts the Docker infrastructure, launches the FinMesh application services and FastAPI web application, and submits the Flink reconciliation job.
 
 ### 5. Verify the platform
 
@@ -288,9 +320,16 @@ A healthy environment should report services such as:
 ✓ Flink JobManager healthy
 ✓ Airflow healthy
 ✓ Grafana healthy
+✓ FinMesh API healthy
 ```
 
 The application process section should show the FinMesh producers, consumers, and writers as running.
+
+Open the FinMesh web interface:
+
+```text
+http://localhost:8000
+```
 
 ## End-to-End Demo
 
@@ -314,16 +353,26 @@ Demo trade ID: TRD-DEMO-6C3E90
 
 The trade enters the same event-driven pipeline used by normal simulated transactions.
 
-Start the intelligence CLI:
+Open the FinMesh web interface:
+
+```text
+http://localhost:8000
+```
+
+Use the generated trade ID in **Trade Explorer** to inspect its lifecycle.
+
+The **Platform Analytics** panels show the current aggregate state of reconciliation, settlement, custody, and asset activity.
+
+The same trade can be investigated through **Ask FinMesh**:
+
+```text
+What happened to TRD-DEMO-6C3E90?
+```
+
+The command-line intelligence interface remains available:
 
 ```bash
 uv run python -m intelligence.main
-```
-
-Then ask about the generated ID:
-
-```text
-FinMesh> What happened to TRD-DEMO-6C3E90?
 ```
 
 Example result from a failed settlement:
@@ -410,11 +459,19 @@ Start the complete platform:
 make start
 ```
 
+Start only the API in development mode:
+
+```bash
+make api
+```
+
 Check health:
 
 ```bash
 make health
 ```
+
+The application process section should show the FinMesh producers, consumers, and writers as running.
 
 Inspect application processes:
 
@@ -451,6 +508,7 @@ make custody
 make clickhouse
 make ledger
 make elasticsearch
+make api
 ```
 
 ## Testing
@@ -461,7 +519,7 @@ Run the complete test suite:
 uv run pytest -v
 ```
 
-The current suite contains **33 tests** covering:
+The current suite contains **43 tests** covering:
 
 - deterministic canonical JSON and SHA-256 hashing,
 - hash-chain behavior,
@@ -471,13 +529,18 @@ The current suite contains **33 tests** covering:
 - RAG context construction,
 - trade ID extraction,
 - deterministic query routing,
-- ClickHouse analytics.
+- ClickHouse analytics,
+- FastAPI health and trade lifecycle endpoints,
+- analytics API endpoints,
+- natural-language intelligence API behavior,
+- API input validation and error handling.
 
 ## Project Structure
 
 ```text
 finmesh/
 ├── airflow/              # Airflow orchestration
+├── api/                  # FastAPI application layer
 ├── core/
 │   ├── clickhouse_writer/
 │   ├── elasticsearch_writer/
@@ -497,6 +560,7 @@ finmesh/
 ├── shared/               # Configuration, Kafka, hashing and schemas
 ├── sql/                  # PostgreSQL and ClickHouse initialization
 ├── tests/                # Automated tests
+├── web/                  # Browser UI
 ├── docker-compose.yml
 ├── Makefile
 ├── pyproject.toml
